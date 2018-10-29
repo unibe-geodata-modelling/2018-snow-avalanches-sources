@@ -21,7 +21,7 @@ preworkspace = "U:/Seminar_Modellieren/20181018_Test_Model"
 tempdir = "C:/temp"
 arcpy.env.overwriteOutput = True
 # Create File GDB
-gdb = "20181029_Model_PRA.gdb"
+gdb = "20181029_a_Model_PRA.gdb"
 arcpy.CreateFileGDB_management(preworkspace, gdb, "CURRENT")
 myworkspace = preworkspace+"/"+gdb
 print "Workspace: " + myworkspace
@@ -284,3 +284,5 @@ for every_file in file_list:
             arcpy.Delete_management(every_file)
     except Exception as f:
         print (f)
+
+print "done ..."
