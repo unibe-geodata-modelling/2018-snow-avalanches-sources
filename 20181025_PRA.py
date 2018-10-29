@@ -86,7 +86,7 @@ outCurvature = arcpy.sa.Curvature(dem, z_curvature, profile_curvature, plan_curv
 # plan curvature is used later
 planCurvature = arcpy.Raster(plan_curvature)
 
-# identify slopes in a certain range
+# identify slopes in a certain range and assign them the value 1, everything else is set to NoData
 min_slope = 30
 max_slope = 60
 conSlope = arcpy.sa.Con((outSlope >= min_slope) & (outSlope <= max_slope), 1)
@@ -123,8 +123,10 @@ arcpy.EliminatePolygonPart_management(PRA1_single, PRA2_1, PRA2_con, area_tresh,
 
 # make a feature layer and select polygons with an area smaller than 5000 m^2 and merge them with neighbouring polygons
 # create a loop that is executed as long as polygons smaller than 5000 m^2 are present and can be merged
-# create a list where the number of polygons smaller than 5000 m2 will be added
+# create a list (small_polygons) where the number of polygons smaller than 5000 m2 will be added
+# create a list (path_PRA2_elim) where the path of the created files will be added
 small_polygons = []
+path_PRA2_elim = []
 count = 1
 while count >= 1:
     feature_layer = "PRA_layer"+str(count)
@@ -142,18 +144,20 @@ while count >= 1:
             count += 1
             PRA2_elim = myworkspace + "/" + "PRA2_" + str(count)
             merge_how = "LENGTH"  # The neighboring polygon is the one with the longest shared border.
-            # Merges a selected polygon with a neighboring unselected polygon by dropping the shared border.
+            # Merges a selected polygon with a neighbouring unselected polygon by dropping the shared border.
             # merge the small polygons with neighbouring big ones
             arcpy.Eliminate_management(feature_layer, PRA2_elim, merge_how)
+            path_PRA2_elim.append(PRA2_elim)
             break
         elif len(small_polygons) > 1:
             if small_polygons[- 1] != small_polygons[- 2]:
                 count += 1
                 PRA2_elim = myworkspace + "/" + "PRA2_"+str(count)
                 merge_how = "LENGTH"  # The neighboring polygon is the one with the longest shared border.
-                # Merges a selected polygon with a neighboring unselected polygon by dropping the shared border.
+                # Merges a selected polygon with a neighbouring unselected polygon by dropping the shared border.
                 # merge the small polygons with neighbouring big ones
                 arcpy.Eliminate_management(feature_layer, PRA2_elim, merge_how)
+                path_PRA2_elim.append(PRA2_elim)
                 break
             else:
                 count = 0
@@ -166,6 +170,19 @@ while count >= 1:
         break
 
 print "Loop to merge small polygons has finished."
+
+
+# Create a feature class containing polygons which represent a specified minimum bounding geometry enclosing
+# all polygons of the potential release areas created in the previous step
+extent_PRA = myworkspace + "/" + "extent_PRA"
+# take the last output of the previous step as input file (index -1 takes the last element of the list)
+in_PRA2_elim = path_PRA2_elim[-1]
+
+arcpy.MinimumBoundingGeometry_management(in_PRA2_elim, extent_PRA)
+
+# Process: Minimum Bounding Geometry
+arcpy.MinimumBoundingGeometry_management(PRA5_ohne_NoPRA__4_, PRA5_ohne_NoPRA_extent, "RECTANGLE_BY_AREA", "ALL", "", "NO_MBG_FIELDS")
+
 
 #**************************************************************************
 # delete all files in the temp folder
