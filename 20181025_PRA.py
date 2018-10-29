@@ -171,17 +171,76 @@ while count >= 1:
 
 print "Loop to merge small polygons has finished."
 
-
 # Create a feature class containing polygons which represent a specified minimum bounding geometry enclosing
 # all polygons of the potential release areas created in the previous step
 extent_PRA = myworkspace + "/" + "extent_PRA"
 # take the last output of the previous step as input file (index -1 takes the last element of the list)
 in_PRA2_elim = path_PRA2_elim[-1]
+geom_type = "RECTANGLE_BY_AREA"
+group_extent = "ALL"
+arcpy.MinimumBoundingGeometry_management(in_PRA2_elim, extent_PRA, geom_type, group_extent)
 
-arcpy.MinimumBoundingGeometry_management(in_PRA2_elim, extent_PRA)
+# unite the extent with the PRAs
+PRA3_union = myworkspace + "/" + "PRA3_union"
+arcpy.Union_analysis([in_PRA2_elim, extent_PRA], PRA3_union)
 
-# Process: Minimum Bounding Geometry
-arcpy.MinimumBoundingGeometry_management(PRA5_ohne_NoPRA__4_, PRA5_ohne_NoPRA_extent, "RECTANGLE_BY_AREA", "ALL", "", "NO_MBG_FIELDS")
+# convert multipart to singlepart features
+PRA4_1 = myworkspace+"/"+"PRA4_1"
+arcpy.MultipartToSinglepart_management(PRA3_union, PRA4_1)
+
+# do the same thing as before to eliminate small polygons but with the area of no PRAs around
+# make a feature layer and select polygons with an area smaller than 5000 m^2 and merge them with neighbouring polygons
+# create a loop that is executed as long as polygons smaller than 5000 m^2 are present and can be merged
+# create a list (small_polygons) where the number of polygons smaller than 5000 m2 will be added
+# create a list (path_PRA2_elim) where the path of the created files will be added
+small_polygons2 = []
+path_PRA4_elim = []
+count = 1
+while count >= 1:
+    feature_layer2 = "PRA_layer2"+str(count)
+    in_feature2 = myworkspace+"/"+"PRA4_"+str(count)
+    arcpy.MakeFeatureLayer_management(in_feature2, feature_layer2)  # make a feature layer
+    selection = "NEW_SELECTION"
+    merge_tresh = "Shape_Area < 5000"
+    # select polygons smaller than 5000 m^2
+    arcpy.SelectLayerByAttribute_management(feature_layer2, selection, merge_tresh)
+    sel_polygons2 = int(arcpy.GetCount_management(feature_layer2).getOutput(0))
+    small_polygons2.append(sel_polygons2)
+    print('{} polygons are smaller than 5000 m^2'.format(sel_polygons2))
+    while sel_polygons2 > 0:
+        if len(small_polygons2) == 1:
+            count += 1
+            PRA4_elim = myworkspace + "/" + "PRA4_" + str(count)
+            merge_how = "LENGTH"  # The neighboring polygon is the one with the longest shared border.
+            # Merges a selected polygon with a neighbouring unselected polygon by dropping the shared border.
+            # merge the small polygons with neighbouring big ones
+            arcpy.Eliminate_management(feature_layer2, PRA4_elim, merge_how)
+            path_PRA4_elim.append(PRA4_elim)
+            break
+        elif len(small_polygons2) > 1:
+            if small_polygons2[- 1] != small_polygons2[- 2]:
+                count += 1
+                PRA4_elim = myworkspace + "/" + "PRA4_"+str(count)
+                merge_how = "LENGTH"  # The neighboring polygon is the one with the longest shared border.
+                # Merges a selected polygon with a neighbouring unselected polygon by dropping the shared border.
+                # merge the small polygons with neighbouring big ones
+                arcpy.Eliminate_management(feature_layer2, PRA4_elim, merge_how)
+                path_PRA4_elim.append(PRA4_elim)
+                break
+            else:
+                count = 0
+                break
+        else:
+            count = 0
+            break
+    else:
+        count = 0
+        break
+
+print "Loop 2 (with no PRAs) to merge small polygons has finished."
+
+# rename the last output of the loop to get the final PRA file
+rename_PRA4 = path_PRA4_elim[-1]
 
 
 #**************************************************************************
