@@ -5,15 +5,16 @@
 
 # imports
 import arcpy
+import os
 
 if arcpy.CheckExtension("Spatial") == "Available":
     arcpy.CheckOutExtension('Spatial')
 else:
     print "no spatial analyst license available"
 
-#**************************************************************************
+# **************************************************************************
 # ENVIRONMENT variables - set workspace and names of input files
-#**************************************************************************
+# **************************************************************************
 
 # set environment and workspace and create gdb
 preworkspace = "U:/Seminar_Modellieren/20181018_Test_Model"
@@ -40,9 +41,9 @@ arcpy.env.cellSize = dem
 arcpy.env.extent = dem
 arcpy.env.snapRaster = dem
 
-#**************************************************************************
+# **************************************************************************
 # create temporary files if wished
-#**************************************************************************
+# **************************************************************************
 
 # slope = tempdir+"/"+"slope.tif" # temporary file for the slope analysis
 # aspect = tempdir+"/"+"aspect.tif" # temporary file for the aspect analysis
@@ -51,9 +52,9 @@ arcpy.env.snapRaster = dem
 plan_curvature = tempdir+"/"+"plan_curvature.tif"  # temporary file for the plan curvature
 profile_curvature = tempdir+"/"+"profile_curvature.tif"  # temporary file for the plan curvature
 
-#**************************************************************************
+# **************************************************************************
 # start analyses
-#**************************************************************************
+# **************************************************************************
 
 # create slope
 out_slope = "DEGREE"
@@ -101,9 +102,9 @@ PRA1 = arcpy.sa.Con(conCurv == 1, 1)
 PRA1_aspect = arcpy.sa.Con(PRA1 == 1, outAspect_classes)
 # PRA1_aspect.save(tempdir+"/"+"PRA1_apect.tif")
 
-#**************************************************************************
+# **************************************************************************
 # convert raster to polygon and simplify them
-#**************************************************************************
+# **************************************************************************
 
 # convert raster to polygon
 PRA1_poly = myworkspace+"/"+"PRA1"  # is saved in gdb to have the area automatically added in the attribute table
@@ -241,18 +242,25 @@ print "Loop 2 (with no PRAs) to merge small polygons has finished."
 
 # rename the last output of the loop to get the final PRA file
 rename_PRA4 = path_PRA4_elim[-1]
+# PRA_final = myworkspace + "/" + "PRA_final"
+PRA_final = os.path.join(myworkspace, "PRA_final")
+arcpy.Rename_management(rename_PRA4, PRA_final)
 
+# **************************************************************************
+# clear all variables except tempdir and myworkspace and PRA_final
+# **************************************************************************
 
-#**************************************************************************
-# delete all files in the temp folder
-#**************************************************************************
-
-# clear all variables except tempdir and myworkspace
 for name in dir():
-    if name != 'tempdir' and name != 'myworkspace':
+    if name != 'tempdir' and name != 'myworkspace' and name != 'PRA_final':
         del globals()[name]
 
+# **************************************************************************
+# delete all files in the temp folder
+# **************************************************************************
+
+import arcpy
 import os
+
 for the_file in os.listdir(tempdir):
     file_path = os.path.join(tempdir, the_file)
     try:
@@ -261,15 +269,18 @@ for the_file in os.listdir(tempdir):
     except Exception as e:
         print(e)
 
-#**************************************************************************
-# delete all files in the gdb except the real PRA file
-#**************************************************************************
+# **************************************************************************
+# delete all files in the gdb except the final PRA file
+# **************************************************************************
 
-# fuktioniert noch nicht!!!! Bedingung einfügen, um ein file zu behalten!!
-for the_file in os.listdir(myworkspace):
-    file_path = os.path.join(myworkspace, the_file)
+file_list = []
+for dirpath, dirnames, filenames in arcpy.da.Walk(myworkspace):
+    for filename in filenames:
+        file_list.append(os.path.join(dirpath, filename))
+
+for every_file in file_list:
     try:
-        if os.path.isfile(file_path):
-            os.unlink(file_path)
-    except Exception as e:
-        print(e)
+        if every_file != PRA_final:
+            arcpy.Delete_management(every_file)
+    except Exception as f:
+        print (f)
