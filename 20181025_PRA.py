@@ -20,7 +20,7 @@ preworkspace = "U:/Seminar_Modellieren/20181018_Test_Model"
 tempdir = "C:/temp"
 arcpy.env.overwriteOutput = True
 # Create File GDB
-gdb = "20181025_Model_PRA.gdb"
+gdb = "20181029_Model_PRA.gdb"
 arcpy.CreateFileGDB_management(preworkspace, gdb, "CURRENT")
 myworkspace = preworkspace+"/"+gdb
 print "Workspace: " + myworkspace
@@ -66,16 +66,16 @@ outAspect = arcpy.sa.Aspect(dem)
 # outAspect.save(aspect)
 # reclassify aspect to get 9 aspect classes
 reclass_field = "VALUE"
-range_aspect_classes = arcpy.sa.RemapRange([[-1,0,1],
-                         [0,22.500000,2],
-                         [22.500000,67.500000,3],
-                         [67.500000,112.500000,4],
-                         [112.500000,157.500000,5],
-                         [157.500000,202.500000,6],
-                         [202.500000,247.500000,7],
-                         [247.500000,292.500000,8],
-                         [292.500000,337.500000,9],
-                         [337.500000,360,2]])
+range_aspect_classes = arcpy.sa.RemapRange([[-1, 0, 1],
+                                            [0, 22.500000, 2],
+                                            [22.500000, 67.500000, 3],
+                                            [67.500000, 112.500000, 4],
+                                            [112.500000, 157.500000, 5],
+                                            [157.500000, 202.500000, 6],
+                                            [202.500000, 247.500000, 7],
+                                            [247.500000, 292.500000, 8],
+                                            [292.500000, 337.500000, 9],
+                                            [337.500000, 360, 2]])
 outAspect_classes = arcpy.sa.Reclassify(outAspect, reclass_field, range_aspect_classes)
 # outAspect_classes.save(aspect_classes)
 
@@ -122,7 +122,7 @@ option = "ANY"
 arcpy.EliminatePolygonPart_management(PRA1_single, PRA2_1, PRA2_con, area_tresh, perc, option)
 
 # make a feature layer and select polygons with an area smaller than 5000 m^2 and merge them with neighbouring polygons
-# create a loop that is executed as long as polygons smaller than 5000 m^2 are present
+# create a loop that is executed as long as polygons smaller than 5000 m^2 are present and can be merged
 # create a list where the number of polygons smaller than 5000 m2 will be added
 small_polygons = []
 count = 1
@@ -165,12 +165,16 @@ while count >= 1:
         count = 0
         break
 
-
-
+print "Loop to merge small polygons has finished."
 
 #**************************************************************************
 # delete all files in the temp folder
 #**************************************************************************
+
+# clear all variables except tempdir and myworkspace
+for name in dir():
+    if name != 'tempdir' and name != 'myworkspace':
+        del globals()[name]
 
 import os
 for the_file in os.listdir(tempdir):
@@ -185,7 +189,7 @@ for the_file in os.listdir(tempdir):
 # delete all files in the gdb except the real PRA file
 #**************************************************************************
 
-# fuktioniert noch nicht!!!!
+# fuktioniert noch nicht!!!! Bedingung einfügen, um ein file zu behalten!!
 for the_file in os.listdir(myworkspace):
     file_path = os.path.join(myworkspace, the_file)
     try:
