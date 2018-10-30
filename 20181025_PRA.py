@@ -6,6 +6,7 @@
 # imports
 import arcpy
 import os
+import numpy
 
 if arcpy.CheckExtension("Spatial") == "Available":
     arcpy.CheckOutExtension('Spatial')
@@ -246,6 +247,20 @@ rename_PRA4 = path_PRA4_elim[-1]
 PRA_final = os.path.join(myworkspace, "PRA_final")
 arcpy.Rename_management(rename_PRA4, PRA_final)
 
+# add a field in the attribute table that will contain 1 for PRA and 2 for no PRA
+field_PRA = "PRA"
+type_PRA = "SHORT"
+arcpy.AddField_management(PRA_final, field_PRA, type_PRA)
+# no PRAs will get the value 2 and PRAs will get the value 1
+expression_PRA = "getPRA(!gridcode!)"
+code_PRA = """
+def getPRA(gridcode):
+    if gridcode == 0:
+        return 2
+    else:
+        return 1"""
+arcpy.CalculateField_management(PRA_final, field_PRA, expression_PRA, "PYTHON", code_PRA)
+
 # **************************************************************************
 # clear all variables except tempdir and myworkspace and PRA_final
 # **************************************************************************
@@ -291,12 +306,63 @@ print "done ..."
 # start of the validation
 # **************************************************************************
 
-# convert the final PRA file back to raseter
-ras_field = "gridcode"
+# convert the final PRA file back to raster
+ras_field = "PRA"
 PRA_final_ras = myworkspace+"/"+"PRA_final_ras"
 ras_method = "MAXIMUM_AREA"
 ras_priority = "NONE"
 ras_size = dem
 arcpy.PolygonToRaster_conversion(PRA_final, ras_field, PRA_final_ras, ras_method, ras_priority, ras_size)
 
+# convert the reference data set to raster
+reference = "U:/Seminar_Modellieren/20181018_Test_Model/reference_release_areas.shp"
+rast_field = "RA"
+reference_ras = myworkspace+"/"+"reference_ras"
+arcpy.PolygonToRaster_conversion(reference, rast_field, reference_ras, ras_method, ras_priority, ras_size)
 
+# generate variables with the PRA raster and the reference raster
+PRA = arcpy.Raster(PRA_final_ras)
+ref = arcpy.Raster(reference_ras)
+
+# calculate the error matrix raster
+error_matrix_ras = arcpy.sa.Con(
+    (PRA == 1) & (ref == 1), 1, arcpy.sa.Con(
+        (PRA == 1) & (ref == 2), 2, arcpy.sa.Con(
+            (PRA == 2) & (ref == 1), 3, arcpy.sa.Con(
+                (PRA == 2) & (ref == 2), 4))))
+error_matrix_ras.save(myworkspace + "/" + "error_matrix_ras")
+
+# generate a numpy array out of the error matrix raster
+error_matrix_arr = arcpy.RasterToNumPyArray(error_matrix_ras)
+
+# count the number of each of the four error matrix options by looping through the whole array
+rows = numpy.shape(error_matrix_arr)[0]
+cols = numpy.shape(error_matrix_arr)[1]
+i = 0
+a_error_matrix = 0
+b_error_matrix = 0
+c_error_matrix = 0
+d_error_matrix = 0
+# first loop through all rows in array
+while i < rows:
+    j = 0
+    # second loop through all columns in row
+    while j < cols:
+        if error_matrix_arr[i,j] == 1:
+            a_error_matrix += 1
+        elif error_matrix_arr[i,j] == 2:
+            b_error_matrix += 1
+        elif error_matrix_arr[i,j] == 3:
+            c_error_matrix += 1
+        elif error_matrix_arr[i,j] == 4:
+            d_error_matrix += 1
+        j += 1
+    i += 1
+
+if (rows * cols) == (a_error_matrix + b_error_matrix + c_error_matrix + d_error_matrix):
+    print "a_error_matrix: " + a_error_matrix
+    print "b_error_matrix: " + b_error_matrix
+    print "c_error_matrix: " + c_error_matrix
+    print "d_error_matrix: " + d_error_matrix
+else:
+    print "something went wrong"
