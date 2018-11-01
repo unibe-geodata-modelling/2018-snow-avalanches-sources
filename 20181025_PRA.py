@@ -22,7 +22,7 @@ preworkspace = "U:/Seminar_Modellieren/20181018_Test_Model"
 tempdir = "C:/temp"
 arcpy.env.overwriteOutput = True
 # Create File GDB
-gdb = "20181101_a_Model_PRA.gdb"
+gdb = "20181101_b_Model_PRA.gdb"
 arcpy.CreateFileGDB_management(preworkspace, gdb, "CURRENT")
 myworkspace = preworkspace+"/"+gdb
 print "Workspace: " + myworkspace
@@ -46,7 +46,7 @@ arcpy.env.snapRaster = dem
 # create temporary files if wished
 # **************************************************************************
 
-# slope = tempdir+"/"+"slope.tif" # temporary file for the slope analysis
+slope = tempdir+"/"+"slope.tif"  # temporary file for the slope analysis
 # aspect = tempdir+"/"+"aspect.tif" # temporary file for the aspect analysis
 # aspect_classes = tempdir+"/"+"aspect_classes.tif" # temporary file for the aspect classes (reclassified aspect)
 # curvature = tempdir+"/"+"curvature.tif" # temporary file for the curvature analysis
@@ -61,7 +61,7 @@ profile_curvature = tempdir+"/"+"profile_curvature.tif"  # temporary file for th
 out_slope = "DEGREE"
 z_slope = 1
 outSlope = arcpy.sa.Slope(dem, out_slope, z_slope)
-# outSlope.save(slope)
+outSlope.save(slope)
 
 # create aspect
 outAspect = arcpy.sa.Aspect(dem)
@@ -269,15 +269,32 @@ arcpy.CalculateField_management(PRA_final, field_PRA, expression_PRA, "PYTHON", 
 # assign characteristical parameters to each PRA
 # **************************************************************************
 
-zone_field ="OBJECTID"
-input_raster = arcpy.Raster(dem_5m)
-field_name = "Avg_Elev2"
-field_type = "FLOAT"
-stat = "MEAN"
+# add a field in the attribute table with consecutive numbers for each feature
+field_PRA = "PRA_nr"
+type_PRA = "SHORT"
+arcpy.AddField_management(PRA_final, field_PRA, type_PRA)
+# assign consecutive numbers for each feature
+expression_PRA = "autoIncrement()"
+code_PRA = """
+rec=0 
+def autoIncrement():
+    global rec 
+    pStart = 1  
+    pInterval = 1 
+    if (rec == 0):
+        rec = pStart  
+    else:  
+        rec += pInterval  
+    return rec"""
+arcpy.CalculateField_management(PRA_final, field_PRA, expression_PRA, "PYTHON", code_PRA)
+
+# calculate min, max, mean altitude and slope with zonal statistics and write each value in a new field to PRA final
+# define the function add_zonal_field
 
 from arcpy.sa import *
 
-def add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat):
+
+def add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat, stat_field):
 
     """ Performs zonal statistics on a set of features,
     then adds and populates a new field in the feature class
@@ -294,22 +311,19 @@ def add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type,
                 arcpy.AddError("Unable to clear temp table")
                 sys.exit(-1)
 
-
     # Zonal statistics
     arcpy.AddMessage("Performing zonal statistics: " + field_name + " in " + PRA_final)
 
-    zonal_table = ZonalStatisticsAsTable(PRA_final,zone_field, input_raster, "zonal_table", "DATA", stat)
-
+    zonal_table = ZonalStatisticsAsTable(PRA_final, zone_field, input_raster, "zonal_table", "DATA", stat)
 
     # Digest statistics from zonal_table
     arcpy.AddMessage("Digesting " + stat + " from zonal table")
 
     stat_dict = {}
 
-    with arcpy.da.SearchCursor(zonal_table,[zone_field,stat]) as cursor:
+    with arcpy.da.SearchCursor(zonal_table, [zone_field, stat_field]) as cursor:
             for row in cursor:
-            stat_dict[row[0]] = row[1]
-
+                stat_dict[row[0]] = row[1]
 
     # update new field in feature class
     arcpy.AddMessage("Calculating " + field_name + "in " + PRA_final)
@@ -319,7 +333,66 @@ def add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type,
             row2[1] = stat_dict[row2[0]]
             cursor2.updateRow(row2)
 
-add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat)
+
+# minimum altitude
+zone_field = "PRA_nr"
+input_raster = arcpy.Raster(dem_5m)
+field_name = "min_alt"
+field_type = "FLOAT"
+stat = "MINIMUM"
+stat_field = "MIN"
+
+add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat, stat_field)
+
+# maximum altitude
+zone_field = "PRA_nr"
+input_raster = arcpy.Raster(dem_5m)
+field_name = "max_alt"
+field_type = "FLOAT"
+stat = "MAXIMUM"
+stat_field = "MAX"
+
+add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat, stat_field)
+
+# mean altitude
+zone_field = "PRA_nr"
+input_raster = arcpy.Raster(dem_5m)
+field_name = "mean_alt"
+field_type = "FLOAT"
+stat = "MEAN"
+stat_field = "MEAN"
+
+add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat, stat_field)
+
+# minimum slope
+zone_field = "PRA_nr"
+input_raster = arcpy.Raster(tempdir+"/"+"slope.tif")
+field_name = "min_slope"
+field_type = "FLOAT"
+stat = "MINIMUM"
+stat_field = "MIN"
+
+add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat, stat_field)
+
+# maximum slope
+zone_field = "PRA_nr"
+input_raster = arcpy.Raster(tempdir+"/"+"slope.tif")
+field_name = "max_slope"
+field_type = "FLOAT"
+stat = "MAXIMUM"
+stat_field = "MAX"
+
+add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat, stat_field)
+
+# mean slope
+zone_field = "PRA_nr"
+input_raster = arcpy.Raster(tempdir+"/"+"slope.tif")
+field_name = "mean_slope"
+field_type = "FLOAT"
+stat = "MEAN"
+stat_field = "MEAN"
+
+add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat, stat_field)
 
 # **************************************************************************
 # start of the validation
@@ -374,15 +447,15 @@ while i < rows:
     j = 0
     # second loop through all columns in row
     while j < cols:
-        if error_matrix_arr[i,j] == 1:
+        if error_matrix_arr[i, j] == 1:
             a_error_matrix += 1
-        elif error_matrix_arr[i,j] == 2:
+        elif error_matrix_arr[i, j] == 2:
             b_error_matrix += 1
-        elif error_matrix_arr[i,j] == 3:
+        elif error_matrix_arr[i, j] == 3:
             c_error_matrix += 1
-        elif error_matrix_arr[i,j] == 4:
+        elif error_matrix_arr[i, j] == 4:
             d_error_matrix += 1
-        elif error_matrix_arr[i,j] == 999:
+        elif error_matrix_arr[i, j] == 999:
             noData += 1
         j += 1
     i += 1
