@@ -269,8 +269,57 @@ arcpy.CalculateField_management(PRA_final, field_PRA, expression_PRA, "PYTHON", 
 # assign characteristical parameters to each PRA
 # **************************************************************************
 
+zone_field ="OBJECTID"
+input_raster = arcpy.Raster(dem_5m)
+field_name = "Avg_Elev2"
+field_type = "FLOAT"
+stat = "MEAN"
+
+from arcpy.sa import *
+
+def add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat):
+
+    """ Performs zonal statistics on a set of features,
+    then adds and populates a new field in the feature class
+    to store the results of the zonal calculations"""
+
+    # Add zone field to features
+    arcpy.AddField_management(PRA_final, field_name, field_type)
+
+    # Clear path for temporary table
+    if arcpy.Exists("zonal_table"):
+        try:
+                arcpy.Delete_management("zonal_table")
+        except:
+                arcpy.AddError("Unable to clear temp table")
+                sys.exit(-1)
 
 
+    # Zonal statistics
+    arcpy.AddMessage("Performing zonal statistics: " + field_name + " in " + PRA_final)
+
+    zonal_table = ZonalStatisticsAsTable(PRA_final,zone_field, input_raster, "zonal_table", "DATA", stat)
+
+
+    # Digest statistics from zonal_table
+    arcpy.AddMessage("Digesting " + stat + " from zonal table")
+
+    stat_dict = {}
+
+    with arcpy.da.SearchCursor(zonal_table,[zone_field,stat]) as cursor:
+            for row in cursor:
+            stat_dict[row[0]] = row[1]
+
+
+    # update new field in feature class
+    arcpy.AddMessage("Calculating " + field_name + "in " + PRA_final)
+
+    with arcpy.da.UpdateCursor(PRA_final, [zone_field, field_name]) as cursor2:
+        for row2 in cursor2:
+            row2[1] = stat_dict[row2[0]]
+            cursor2.updateRow(row2)
+
+add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat)
 
 # **************************************************************************
 # start of the validation
