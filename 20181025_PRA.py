@@ -394,6 +394,38 @@ stat_field = "MEAN"
 
 add_zonal_field(PRA_final, zone_field, input_raster, field_name, field_type, stat, stat_field)
 
+# add a field in the attribute table that will contain the aspect sectors as text
+field_PRA = "Aspect"
+type_PRA = "TEXT"
+arcpy.AddField_management(PRA_final, field_PRA, type_PRA)
+# the gridcode is used for assignment
+expression_PRA = "getPRA(!gridcode!)"
+code_PRA = """
+def getPRA(gridcode):
+    if gridcode == 0:
+        return 'noPRA'
+    elif gridcode == 1:
+        return 'flat'
+    elif gridcode == 2:
+        return 'north'
+    elif gridcode == 3:
+        return 'northeast'
+    elif gridcode == 4:
+        return 'east'
+    elif gridcode == 5:
+        return 'southeast'
+    elif gridcode == 6:
+        return 'south'
+    elif gridcode == 7:
+        return 'southwest'
+    elif gridcode == 8:
+        return 'west'
+    elif gridcode == 9:
+        return 'northwest'
+    else:
+        return 'wrong'"""
+arcpy.CalculateField_management(PRA_final, field_PRA, expression_PRA, "PYTHON", code_PRA)
+
 # **************************************************************************
 # start of the validation
 # **************************************************************************
