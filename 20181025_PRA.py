@@ -241,6 +241,10 @@ while count >= 1:
 
 print "Loop 2 (with no PRAs) to merge small polygons has finished."
 
+# **************************************************************************
+# save the final PRA file
+# **************************************************************************
+
 # rename the last output of the loop to get the final PRA file
 rename_PRA4 = path_PRA4_elim[-1]
 # PRA_final = myworkspace + "/" + "PRA_final"
@@ -260,6 +264,13 @@ def getPRA(gridcode):
     else:
         return 1"""
 arcpy.CalculateField_management(PRA_final, field_PRA, expression_PRA, "PYTHON", code_PRA)
+
+# **************************************************************************
+# assign characteristical parameters to each PRA
+# **************************************************************************
+
+
+
 
 # **************************************************************************
 # start of the validation
