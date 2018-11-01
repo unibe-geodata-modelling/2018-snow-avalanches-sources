@@ -298,7 +298,7 @@ error_matrix_ras_final = arcpy.sa.Con(arcpy.sa.IsNull(error_matrix_lyr), 999, er
 error_matrix_ras_final.save(myworkspace + "/" + "error_matrix_ras_final")
 
 # generate a numpy array out of the error matrix raster
-error_matrix_arr = arcpy.RasterToNumPyArray(error_matrix_ras)
+error_matrix_arr = arcpy.RasterToNumPyArray(error_matrix_ras_final)
 
 # count the number of each of the four error matrix options by looping through the whole array
 rows = numpy.shape(error_matrix_arr)[0]
@@ -308,6 +308,7 @@ a_error_matrix = 0
 b_error_matrix = 0
 c_error_matrix = 0
 d_error_matrix = 0
+noData = 0
 # first loop through all rows in array
 while i < rows:
     j = 0
@@ -321,14 +322,17 @@ while i < rows:
             c_error_matrix += 1
         elif error_matrix_arr[i,j] == 4:
             d_error_matrix += 1
+        elif error_matrix_arr[i,j] == 999:
+            noData += 1
         j += 1
     i += 1
 
-if (rows * cols) == (a_error_matrix + b_error_matrix + c_error_matrix + d_error_matrix):
-    print "a_error_matrix: " + a_error_matrix
-    print "b_error_matrix: " + b_error_matrix
-    print "c_error_matrix: " + c_error_matrix
-    print "d_error_matrix: " + d_error_matrix
+if (rows * cols) == (a_error_matrix + b_error_matrix + c_error_matrix + d_error_matrix + noData):
+    print "a_error_matrix: " + str(a_error_matrix)
+    print "b_error_matrix: " + str(b_error_matrix)
+    print "c_error_matrix: " + str(c_error_matrix)
+    print "d_error_matrix: " + str(d_error_matrix)
+    print "noData: " + str(noData)
 else:
     print "something went wrong"
 
