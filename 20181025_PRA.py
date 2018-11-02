@@ -531,6 +531,8 @@ for name in dir():
     if name != 'tempdir' and name != 'myworkspace' and name != 'PRA_final':
         del globals()[name]
 
+print "All variables are cleared."
+
 # **************************************************************************
 # delete all files in the temp folder
 # **************************************************************************
@@ -545,6 +547,8 @@ for the_file in os.listdir(tempdir):
             os.unlink(file_path)
     except Exception as e:
         print(e)
+
+print "All files in the temp folder are deleted."
 
 # **************************************************************************
 # delete all files in the gdb except the final PRA file
@@ -562,4 +566,4 @@ for every_file in file_list:
     except Exception as f:
         print (f)
 
-print "done ..."
+print "All files (except the final PRA file) in the gdb are deleted."
