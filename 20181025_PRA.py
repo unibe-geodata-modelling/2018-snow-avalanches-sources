@@ -22,7 +22,7 @@ preworkspace = "U:/Seminar_Modellieren/20181018_Test_Model"
 tempdir = "C:/temp"
 arcpy.env.overwriteOutput = True
 # Create File GDB
-gdb = "20181101_b_Model_PRA.gdb"
+gdb = "20181102_Model_PRA.gdb"
 arcpy.CreateFileGDB_management(preworkspace, gdb, "CURRENT")
 myworkspace = preworkspace+"/"+gdb
 print "Workspace: " + myworkspace
@@ -265,6 +265,8 @@ def getPRA(gridcode):
         return 1"""
 arcpy.CalculateField_management(PRA_final, field_PRA, expression_PRA, "PYTHON", code_PRA)
 
+print "The final PRA file is saved."
+
 # **************************************************************************
 # assign characteristical parameters to each PRA
 # **************************************************************************
@@ -425,6 +427,26 @@ def getPRA(gridcode):
     else:
         return 'wrong'"""
 arcpy.CalculateField_management(PRA_final, field_PRA, expression_PRA, "PYTHON", code_PRA)
+
+print "The assignment of characteristical parameters has finished."
+
+# **************************************************************************
+# delete unnecessary fields in the attribute table
+# **************************************************************************
+
+# use ListFields to get a list of field objects
+fieldObjList = arcpy.ListFields(PRA_final)
+# create an empty list that will be populated with field names
+fieldNameList = []
+for field in fieldObjList:
+    if not field.required:
+        fieldNameList.append(field.name)
+
+# delete the unnecessary fields
+arcpy.DeleteField_management(PRA_final, fieldNameList[0:2])
+arcpy.DeleteField_management(PRA_final, fieldNameList[3:5])
+
+print "Unnecessary fields are deleted."
 
 # **************************************************************************
 # start of the validation
