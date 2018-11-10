@@ -17,6 +17,8 @@ After execution, run the last part to delete unnecessary files in the geodatabas
 
 This is the explanation how to use the Python script.
 
+In the current version of the script, the only input data needed is a __digital elevation model (DEM)__ that is representing the surface of the area of interest. The procedure can be applied for any region with a potential snow cover and an available DEM.
+
 After the intro part, the script has three main parts: 
 1. The creation of the PRA_final file with the final PRA polygons (until line 488)
 2. The validation (from line 489 until line 579)
@@ -38,3 +40,5 @@ Sometimes an error message appears when the whole script together with this very
 As it is nice to have no unnecessary files left after the analysis, but as the problem with the error message could not be solved, it is recommended to run the last part of the script separately (from line 607 to the end).
 
 The model creates polygons of potential snow avalanche release areas with characteristical parameters of each PRA in the attribute table.
+
+More information can be found in the report about the modelling project (pdf file on GitHub).
