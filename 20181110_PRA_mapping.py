@@ -7,14 +7,15 @@
 # What you have to do:
 # **************************************************************************
 
-# Line 38: set a preworkspace folder
-# Line 42: define the name for the file geodatabase (gdb)
-# Line 49: adapt the name of the DEM (the DEM should be saved in the preworkspace folder)
-# Line 67 to 74: define the parameters
-# Line 80: define the reference data set (has to be polygons) (if needed, change rast_field in line 503)
+# Line 39: set a preworkspace folder
+# Line 40: set a folder for temporary files
+# Line 43: define the name for the file geodatabase (gdb)
+# Line 50: adapt the name of the DEM (the DEM should be saved in the preworkspace folder)
+# Line 68 to 75: define the parameters
+# Line 81: define the reference data set (has to be polygons) (if needed, change rast_field in line 504)
 
 # DO NOT RUN THE WHOLE SCRIPT AT ONCE!!!
-# Run the first part until line 606
+# Run the first part until line 607
 # After execution, run the last part to delete unnecessary files in the gdb
 
 # **************************************************************************
