@@ -3,7 +3,24 @@
 # Seminar Geodata Analysis and Modelling, Spring Semester 2018
 # The model creates polygons of potential snow avalanche release areas
 
-# imports
+# **************************************************************************
+# What you have to do:
+# **************************************************************************
+
+# Line 38: set a preworkspace folder
+# Line 42: define the name for the file geodatabase (gdb)
+# Line 49: adapt the name of the DEM (the DEM should be saved in the preworkspace folder)
+# Line 67 to 74: define the parameters
+# Line 80: define the reference data set (has to be polygons)
+
+# DO NOT RUN THE WHOLE SCRIPT AT ONCE!!!
+# Run the first part until line 606
+# After execution, run the last part to delete unnecessary files in the gdb
+
+# **************************************************************************
+# Imports
+# **************************************************************************
+
 import arcpy
 import os
 import numpy
@@ -54,7 +71,13 @@ max_slope = 60
 max_curv = 6
 
 # set minimum area for the PRAs (as string)
-min_area = "5000"
+min_area = "2000"
+
+# **************************************************************************
+# REFERENCE DATA SET - define the reference data set here (Polygons)
+# **************************************************************************
+
+reference = "U:/Seminar_Modellieren/20181018_Test_Model/reference_release_areas.shp"
 
 # **************************************************************************
 # create temporary files
@@ -467,8 +490,6 @@ print "Unnecessary fields are deleted."
 # start of the validation
 # **************************************************************************
 
-# insert reference data set (polygons) and the field that is used for the raster values
-
 # convert the final PRA file back to raster
 ras_field = "PRA"
 PRA_final_ras = myworkspace+"/"+"PRA_final_ras"
@@ -478,7 +499,7 @@ ras_size = dem
 arcpy.PolygonToRaster_conversion(PRA_final, ras_field, PRA_final_ras, ras_method, ras_priority, ras_size)
 
 # convert the reference data set to raster
-reference = "U:/Seminar_Modellieren/20181018_Test_Model/reference_release_areas.shp"
+# define the field of the reference data set (polygons) that is used for the raster values
 rast_field = "RA"
 reference_ras = myworkspace+"/"+"reference_ras"
 arcpy.PolygonToRaster_conversion(reference, rast_field, reference_ras, ras_method, ras_priority, ras_size)
@@ -508,10 +529,10 @@ error_matrix_arr = arcpy.RasterToNumPyArray(error_matrix_ras_final)
 rows = numpy.shape(error_matrix_arr)[0]
 cols = numpy.shape(error_matrix_arr)[1]
 i = 0
-a_error_matrix = 0
-b_error_matrix = 0
-c_error_matrix = 0
-d_error_matrix = 0
+a_error_matrix = float(0)
+b_error_matrix = float(0)
+c_error_matrix = float(0)
+d_error_matrix = float(0)
 noData = 0
 # first loop through all rows in array
 while i < rows:
@@ -540,6 +561,22 @@ if (rows * cols) == (a_error_matrix + b_error_matrix + c_error_matrix + d_error_
 else:
     print "something went wrong"
 
+total = a_error_matrix + b_error_matrix + c_error_matrix + d_error_matrix
+
+# calculate the accuracy measures
+
+Accuracy = (a_error_matrix + d_error_matrix) / total
+POD = a_error_matrix / (a_error_matrix + c_error_matrix)
+POFD = b_error_matrix / (d_error_matrix + b_error_matrix)
+FAR = b_error_matrix / (a_error_matrix + b_error_matrix)
+BS = (a_error_matrix + b_error_matrix) / (a_error_matrix + c_error_matrix)
+
+print "Accuracy = " + str(Accuracy)
+print "Probability of detection = " + str(POD)
+print "Probability of false detection = " + str(POFD)
+print "False alarm ratio = " + str(FAR)
+print "Bias score = " + str(BS)
+
 # **************************************************************************
 # clear all variables except tempdir and myworkspace and PRA_final
 # **************************************************************************
@@ -567,6 +604,9 @@ for the_file in os.listdir(tempdir):
 
 print "All files in the temp folder are deleted."
 
+# **************************************************************************
+# RUN THIS LAST PART SEPARATELY!!!
+# **************************************************************************
 # **************************************************************************
 # delete all files in the gdb except the final PRA file
 # **************************************************************************
