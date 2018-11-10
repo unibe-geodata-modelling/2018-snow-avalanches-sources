@@ -22,7 +22,7 @@ preworkspace = "U:/Seminar_Modellieren/20181018_Test_Model"
 tempdir = "C:/temp"
 arcpy.env.overwriteOutput = True
 # Create File GDB
-gdb = "20181102_Model_PRA.gdb"
+gdb = "20181110_Model_PRA.gdb"
 arcpy.CreateFileGDB_management(preworkspace, gdb, "CURRENT")
 myworkspace = preworkspace+"/"+gdb
 print "Workspace: " + myworkspace
@@ -43,7 +43,21 @@ arcpy.env.extent = dem
 arcpy.env.snapRaster = dem
 
 # **************************************************************************
-# create temporary files if wished
+# PARAMETERS - define the parameters here
+# **************************************************************************
+
+# set minimum and maximum slope for the PRAs
+min_slope = 30
+max_slope = 60
+
+# set maximum curvature for the PRAs
+max_curv = 6
+
+# set minimum area for the PRAs (as string)
+min_area = "5000"
+
+# **************************************************************************
+# create temporary files
 # **************************************************************************
 
 slope = tempdir+"/"+"slope.tif"  # temporary file for the slope analysis
@@ -89,13 +103,10 @@ outCurvature = arcpy.sa.Curvature(dem, z_curvature, profile_curvature, plan_curv
 planCurvature = arcpy.Raster(plan_curvature)
 
 # identify slopes in a certain range and assign them the value 1, everything else is set to NoData
-min_slope = 30
-max_slope = 60
 conSlope = arcpy.sa.Con((outSlope >= min_slope) & (outSlope <= max_slope), 1)
 # conSlope.save(tempdir+"/"+"conslope.tif")
 
 # set cells with a plan curvature bigger than a certain threshold to NoData (first assign them the value 2)
-max_curv = 6
 conCurv = arcpy.sa.Con(planCurvature > max_curv, 2, conSlope)
 PRA1 = arcpy.sa.Con(conCurv == 1, 1)
 
@@ -118,14 +129,16 @@ arcpy.MultipartToSinglepart_management(PRA1_poly, PRA1_single)
 # eliminate polygon parts with an area smaller than a certain threshold
 PRA2_1 = myworkspace+"/"+"PRA2_1"
 PRA2_con = "AREA"
-area_tresh = "5000 SquareMeters"
+area_thresh = min_area + " SquareMeters"
 perc = 0  # Eliminate parts smaller than this percentage of a feature's total outer area.
 option = "ANY"
-arcpy.EliminatePolygonPart_management(PRA1_single, PRA2_1, PRA2_con, area_tresh, perc, option)
+arcpy.EliminatePolygonPart_management(PRA1_single, PRA2_1, PRA2_con, area_thresh, perc, option)
 
-# make a feature layer and select polygons with an area smaller than 5000 m^2 and merge them with neighbouring polygons
-# create a loop that is executed as long as polygons smaller than 5000 m^2 are present and can be merged
-# create a list (small_polygons) where the number of polygons smaller than 5000 m2 will be added
+# make a feature layer and select polygons with an area smaller than the minimum area specified
+# and merge them with neighbouring polygons
+# create a loop that is executed as long as polygons smaller than the minimum area specified are present
+# and can be merged
+# create a list (small_polygons) where the number of polygons smaller than the minimum area specified will be added
 # create a list (path_PRA2_elim) where the path of the created files will be added
 small_polygons = []
 path_PRA2_elim = []
@@ -135,12 +148,12 @@ while count >= 1:
     in_feature = myworkspace+"/"+"PRA2_"+str(count)
     arcpy.MakeFeatureLayer_management(in_feature, feature_layer)  # make a feature layer
     selection = "NEW_SELECTION"
-    merge_tresh = "Shape_Area < 5000"
-    # select polygons smaller than 5000 m^2
+    merge_tresh = "Shape_Area < " + min_area
+    # select polygons smaller than the minimum area specified
     arcpy.SelectLayerByAttribute_management(feature_layer, selection, merge_tresh)
     sel_polygons = int(arcpy.GetCount_management(feature_layer).getOutput(0))
     small_polygons.append(sel_polygons)
-    print('{} polygons are smaller than 5000 m^2'.format(sel_polygons))
+    print('{} polygons are smaller than {} m^2'.format(sel_polygons, min_area))
     while sel_polygons > 0:
         if len(small_polygons) == 1:
             count += 1
@@ -191,9 +204,11 @@ PRA4_1 = myworkspace+"/"+"PRA4_1"
 arcpy.MultipartToSinglepart_management(PRA3_union, PRA4_1)
 
 # do the same thing as before to eliminate small polygons but with the area of no PRAs around
-# make a feature layer and select polygons with an area smaller than 5000 m^2 and merge them with neighbouring polygons
-# create a loop that is executed as long as polygons smaller than 5000 m^2 are present and can be merged
-# create a list (small_polygons) where the number of polygons smaller than 5000 m2 will be added
+# make a feature layer and select polygons with an area smaller than the minimum area specified
+# and merge them with neighbouring polygons
+# create a loop that is executed as long as polygons smaller than the minimum area specified are present
+# and can be merged
+# create a list (small_polygons) where the number of polygons smaller than the minimum area specified will be added
 # create a list (path_PRA2_elim) where the path of the created files will be added
 small_polygons2 = []
 path_PRA4_elim = []
@@ -203,12 +218,12 @@ while count >= 1:
     in_feature2 = myworkspace+"/"+"PRA4_"+str(count)
     arcpy.MakeFeatureLayer_management(in_feature2, feature_layer2)  # make a feature layer
     selection = "NEW_SELECTION"
-    merge_tresh = "Shape_Area < 5000"
-    # select polygons smaller than 5000 m^2
+    merge_tresh = "Shape_Area < " + min_area
+    # select polygons smaller than the minimum area specified
     arcpy.SelectLayerByAttribute_management(feature_layer2, selection, merge_tresh)
     sel_polygons2 = int(arcpy.GetCount_management(feature_layer2).getOutput(0))
     small_polygons2.append(sel_polygons2)
-    print('{} polygons are smaller than 5000 m^2'.format(sel_polygons2))
+    print('{} polygons are smaller than {} m^2'.format(sel_polygons2, min_area))
     while sel_polygons2 > 0:
         if len(small_polygons2) == 1:
             count += 1
@@ -451,6 +466,8 @@ print "Unnecessary fields are deleted."
 # **************************************************************************
 # start of the validation
 # **************************************************************************
+
+# insert reference data set (polygons) and the field that is used for the raster values
 
 # convert the final PRA file back to raster
 ras_field = "PRA"
