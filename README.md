@@ -17,6 +17,11 @@ After execution, run the last part to delete unnecessary files in the geodatabas
 
 This is the explanation how to use the Python script.
 
+After the intro part, the script has three main parts: 
+1. The creation of the PRA_final file with the final PRA polygons (until line 488)
+2. The validation (from line 489 until line 579)
+3. The deletion of unnecessary files (from line 580 to the end)
+
 These things have to be adjusted before the execution:
 * Line 38: set a preworkspace folder
 * Line 42: define the name for the file geodatabase (gdb)
@@ -25,11 +30,7 @@ These things have to be adjusted before the execution:
 * Line 80: define the reference data set (has to be polygons) (if needed, change rast_field in line 503)
 
 The reference data set needs to be a vector file with polygons that have a field in the attribute table with 1 for PRAs and 2 for non-PRAs.
-
-After the intro part, the script has three main parts: 
-1. The creation of the PRA_final file with the final PRA polygons (until line 488)
-2. The validation (from line 489 until line 579)
-3. The deletion of unnecessary files (from line 580 to the end)
+If no reference data set is available, run the script without the validation part.
 
 If the last part of the script is used, the temporary folder and all the files in the geodatabase except the final PRA file will be deleted.
 The deletion of unwanted files has two parts, one for the temporary folder and one for the geodatabase.
