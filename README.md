@@ -35,6 +35,6 @@ If no reference data set is available, run the script without the validation par
 If the last part of the script is used, the temporary folder and all the files in the geodatabase except the final PRA file will be deleted.
 The deletion of unwanted files has two parts, one for the temporary folder and one for the geodatabase.
 Sometimes an error message appears when the whole script together with this very last part is executed and PyCharm is stuck.
-As it is nice to have no unnecessary files left after the analysis, but as the problem with the error message could not be solved, it is recommended to run the last part of the script separately.
+As it is nice to have no unnecessary files left after the analysis, but as the problem with the error message could not be solved, it is recommended to run the last part of the script separately (from line 607 to the end).
 
 The model creates polygons of potential snow avalanche release areas with characteristical parameters of each PRA in the attribute table.
